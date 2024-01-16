@@ -1,0 +1,183 @@
+ZADATAK 1
+------------
+
+kod između ***** je promjenjen i to u StackDemo.main
+
+ String[] expression = args[0].split(" ");
+        for (String element : expression) {
+            try {
+                if (element.matches("-?\\d+")) {
+                    stack.push(Integer.parseInt(element));
+                } else {
+                    int op2 = (int) stack.pop();
+			******************
+                    if(element.equals("cubed")){   
+                        stack.push(op2*op2*op2);
+                        continue;
+                    }
+			********************
+                    int op1 = (int) stack.pop();
+
+                    switch (element) {
+                        case "+" -> stack.push(op1 + op2);
+                        case "-" -> stack.push(op1 - op2);
+                        case "*" -> stack.push(op1 * op2);
+                        case "/" -> {
+                            if (op2 == 0) {
+                                System.err.println("Can't divide by zero");
+                                return;
+                            }
+                            stack.push(op1 / op2);
+                        }
+                        case "%" -> {
+                            if (op2 == 0) {
+                                System.err.println("Can't divide by zero");
+                                return;
+                            }
+                            stack.push(op1 % op2);
+                        }
+			********************************* 
+                        case "bigger" -> stack.push(Math.max(op1, op2));
+			*****************************
+                        default -> {
+                            System.err.println("Invalid expression,Sign not recognized: '" + element + "'");
+                            return;
+                        }
+                    }
+                }
+            }catch (EmptyStackException e){
+                System.err.println("Invalid postfix expression");
+            }
+	...
+
+
+ZADATAK 2
+---------------
+
+    public default <Z>   void  copyTransformedIfAllowed(Collection<Z> col, Function<? super T , ? extends  Z> processor, Tester<? super T> tester){
+
+        ElementsGetter<T> iterator = (ElementsGetter<T>) this.createElementsGetter();
+        while(iterator.hasNextElement()){
+            T element =  iterator.getNextElement();
+            if(tester.test(element)){
+                col.add(processor.apply(element));
+            }
+        }
+    }
+
+
+ZADATAK 3
+-------------
+
+public class QueryParser {
+
+    private String query;
+    private boolean direct;
+    
+    String[] showing = null
+**************
+    List<ConditionalExpression> expressions;
+
+    public String[] getShowing() {
+        return showing;
+    }
+***************
+
+... u metodi parse  na samom kraju ispitavanja while petlje
+
+ expressions.add(new ConditionalExpression(field, stringLiterals, operator));
+
+
+            if(expression.strip().length() == 0){ //kraj uvjeta
+                break;
+            }else if(expression.substring(0,3).toUpperCase().equals("AND")) //break condition
+                expression = expression.substring(3).strip();
+***************************
+           else if(expression.substring(0,7).toUpperCase().equals("SHOWING")){ //break condition
+                expression = expression.substring(7).strip();
+                showing = Arrays.stream(expression.split(", "))
+                        .map((v) -> {
+                            if (v.equals("jmbag")) return FieldValueGetters.JMBAG;
+                            else if (v.equals("firstName")) return FieldValueGetters.FIRST_NAME;
+                            else if (v.equals("lastName")) return FieldValueGetters.LAST_NAME;
+                            else throw new IllegalArgumentException("Invalid showing");
+                        }).toArray(IFieldValueGetter[]::new);
+		break; }
+           
+*******************************
+     ¸	   }else
+                throw new IllegalArgumentException("Invalid query"); //greska u parsiranju
+       } //IZVAN WHILE PETLJE 
+
+       if(expressions.size() == 1 && expressions.get(0).getComparisonOperator() == ComparisonOperators.EQUALS
+            && expressions.get(0).getFieldGetter() == FieldValueGetters.JMBAG)
+           direct=true;
+
+
+    }
+
+//još je potrebno samo promijeniti ispis
+
+*******************
+    private static List<String> formatOutput(List<StudentRecord> filtered, IFieldValueGetter[] showing) {
+        if(filtered.isEmpty()) return new ArrayList<>();
+
+        if(showing == null){
+            showing = new IFieldValueGetter[]{FieldValueGetters.JMBAG,FieldValueGetters.LAST_NAME,FieldValueGetters.FIRST_NAME};
+        }
+        
+        List<String> output = new ArrayList<String>();
+        int maxSizeFirstName = 10;
+        int maxSizeLastName = 10;
+        for(var student : filtered){
+            if(student.getFirstName().length() > maxSizeFirstName)
+                maxSizeFirstName = student.getFirstName().length();
+            if(student.getLastName().length() > maxSizeLastName)
+                maxSizeLastName = student.getLastName().length();
+        }
+
+        StringBuilder okvir = new StringBuilder();
+        for (var element : showing){
+            int size = 0;
+            if(element == FieldValueGetters.JMBAG)
+                size = 12;
+            else if(element == FieldValueGetters.LAST_NAME)
+                size = maxSizeLastName + 2;
+            else if(element == FieldValueGetters.FIRST_NAME)
+                size = maxSizeFirstName + 2;
+            
+            okvir.append("+")
+                    .append("=".repeat(size))
+                    .append("+");
+
+        }
+        output.add(okvir.toString());
+        
+        for(var student : filtered){
+            StringBuilder sb = new StringBuilder();
+            
+            for(var element : showing){
+                int size = 0;
+                String value = "";
+                if(element == FieldValueGetters.JMBAG){
+                    value = student.getJmbag();
+                    size = 12;
+                }
+                else if(element == FieldValueGetters.LAST_NAME){
+                    value = student.getLastName();
+                    size = maxSizeLastName + 2;
+                }
+                else if(element == FieldValueGetters.FIRST_NAME){
+                    value = student.getFirstName();
+                    size = maxSizeFirstName + 2;
+                }
+               sb.append(" ".repeat(Math.max(0, size - value.length()))).append(value).append(" | ");
+            }
+            output.add(sb.toString());
+        }
+        output.add(okvir.toString());
+        return  output;
+
+    }
+
+********************

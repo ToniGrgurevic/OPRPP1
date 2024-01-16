@@ -1,0 +1,10 @@
+
+
+<query> -> <conditions>
+
+<conditions> -> <condition> AND <conditions> | <condition>
+
+<condition> -> <field> <operator> <value>
+<field> -> firstName | lastName | jmbag
+<operators> -> = | != | > | >= | < | <= | LIKE
+<value> -> string
