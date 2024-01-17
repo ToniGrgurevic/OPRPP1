@@ -1,37 +1,32 @@
 package hr.fer.oprpp1.hw08.jnotepadpp;
 
+import hr.fer.oprpp1.hw08.jnotepadpp.documentModels.DefaultMultipleDocumentModel;
+import hr.fer.oprpp1.hw08.jnotepadpp.documentModels.DefaultSingleDocumentModel;
+import hr.fer.oprpp1.hw08.jnotepadpp.documentModels.SingleDocumentModel;
+import hr.fer.oprpp1.hw08.jnotepadpp.liseners.MultipleDocumentListener;
+import hr.fer.oprpp1.hw08.jnotepadpp.liseners.SingleDocumentListener;
+
 import java.awt.BorderLayout;
-import java.awt.event.ActionEvent;
-import java.awt.event.KeyEvent;
+import java.awt.event.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Objects;
 
-import javax.swing.AbstractAction;
-import javax.swing.Action;
-import javax.swing.JButton;
-import javax.swing.JFileChooser;
-import javax.swing.JFrame;
-import javax.swing.JMenu;
-import javax.swing.JMenuBar;
-import javax.swing.JMenuItem;
-import javax.swing.JOptionPane;
-import javax.swing.JScrollPane;
-import javax.swing.JTextArea;
-import javax.swing.JToolBar;
-import javax.swing.KeyStroke;
-import javax.swing.SwingUtilities;
-import javax.swing.WindowConstants;
+import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
+
+import static java.awt.SystemColor.text;
 
 public class JNotepad extends JFrame {
 
     private static final long serialVersionUID = 1L;
-    private JTextArea editor;
-    private Path openedFilePath;
+    private DefaultMultipleDocumentModel model;
 
     private String copyed;
 
@@ -41,23 +36,141 @@ public class JNotepad extends JFrame {
         setLocation(0, 0);
         setSize(600, 600);
 
+        this.setTitle("(unnamed) - JNotepad++");
+
         initGUI();
     }
 
     private void initGUI() {
 
-        editor = new JTextArea();
+        model = new DefaultMultipleDocumentModel();
+
 
         this.getContentPane().setLayout(new BorderLayout());
-        this.getContentPane().add(new JScrollPane(editor), BorderLayout.CENTER);
+        this.setDefaultCloseOperation(DO_NOTHING_ON_CLOSE);
+
+
+        this.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                for (int i = 0; i < model.getNumberOfDocuments(); i++) {
+                    var singleDocumentModel =model.getDocument(i);
+
+                    if(!singleDocumentModel.isModified()) {
+
+                        int rezultat = JOptionPane.showConfirmDialog(
+                                JNotepad.this,
+                                "Datoteka nije snimljena. Želite li je snimiti?",
+                                "Upozorenje",
+                                JOptionPane.YES_NO_CANCEL_OPTION,
+                                JOptionPane.WARNING_MESSAGE);
+                        if (rezultat == JOptionPane.CANCEL_OPTION) {
+                            return;
+                        } else if (rezultat == JOptionPane.NO_OPTION) {
+                            model.closeDocument(singleDocumentModel);
+                        } else {
+                            if (singleDocumentModel.getFilePath() == null)
+                                saveAsDocumentAction.actionPerformed(new ActionEvent(this,i,"exiting"));
+                            else saveDocumentAction.actionPerformed(new ActionEvent(this,i,"exiting"));
+                            model.closeDocument(singleDocumentModel);
+                        }
+
+                    }
+                }
+                dispose();
+            }
+        });
 
         createActions();
         createMenus();
         createToolbars();
+        createTabbedPane();
+
+        //createNewDocument(null);
+        model.createNewDocument();
+
+
 
     }
 
-    private Action openDocumentAction = new AbstractAction() {
+
+    private void createTabbedPane() {
+
+        this.getContentPane().add(model, BorderLayout.CENTER);
+
+
+        MultipleDocumentListener lisener = new MultipleDocumentListener() {
+                    @Override
+                    public void currentDocumentChanged(SingleDocumentModel previousModel, SingleDocumentModel currentModel) {
+                        if(currentModel.getFilePath() == null) {
+                            setTitle("(unnamed) - JNotepad++");
+                        } else {
+                            setTitle(currentModel.getFilePath().toString() + " - JNotepad++");
+                        }
+                    }
+
+                    @Override
+                    public void documentAdded(SingleDocumentModel model) {
+
+                    }
+
+                    @Override
+                    public void documentRemoved(SingleDocumentModel model) {
+
+                    }
+        };
+
+        model.addMultipleDocumentListener(lisener);
+
+
+        model.getCurrentDocument().addSingleDocumentListener(new SingleDocumentListener() {
+
+            public void documentModifyStatusUpdated(SingleDocumentModel docModel) {
+                model.setIconAt(model.getIndexOfDocument(docModel), docModel.isModified() ? JNotepad.modifiedIcon : JNotepad.unmodifiedIcon);
+            }
+            public void documentFilePathUpdated(SingleDocumentModel docModel) {
+                model.setTitleAt(model.getIndexOfDocument(docModel), docModel.getFilePath() == null ? "(unnamed)" : docModel.getFilePath().getFileName().toString());
+                model.setToolTipTextAt(model.getIndexOfDocument(docModel), docModel.getFilePath() == null ? "(unnamed)" : docModel.getFilePath().toString());
+            }
+        });
+    }
+
+
+
+
+
+    private final Action statisticInfo = new AbstractAction() {
+
+        private static final long serialVersionUID = 1L;
+
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            Document doc= model.getCurrentDocument().getTextComponent().getDocument();
+            int lenght = doc.getLength();
+            JTextArea editor = model.getCurrentDocument().getTextComponent();
+            int rows = editor.getLineCount();
+            int nonBlankCount = 0;
+            try {
+                for (char c : doc.getText(0, lenght).toCharArray()) {
+                    if (!Character.isWhitespace(c)) {
+                        nonBlankCount++;
+                    }
+                }
+            } catch (BadLocationException ex) {
+                throw new RuntimeException(ex);
+            }
+            JOptionPane.showMessageDialog(
+                    JNotepad.this,
+                    "Your document has "+lenght+" characters, "+rows+" rows and "+nonBlankCount+" non-blank characters.",
+                    "Informacija",
+                    JOptionPane.INFORMATION_MESSAGE);
+
+        }
+
+
+    };
+
+    private final Action openDocumentAction = new AbstractAction() {
 
         private static final long serialVersionUID = 1L;
 
@@ -78,20 +191,8 @@ public class JNotepad extends JFrame {
                         JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            byte[] okteti;
-            try {
-                okteti = Files.readAllBytes(filePath);
-            } catch(Exception ex) {
-                JOptionPane.showMessageDialog(
-                        JNotepad.this,
-                        "Pogreška prilikom čitanja datoteke "+fileName.getAbsolutePath()+".",
-                        "Pogreška",
-                        JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            String tekst = new String(okteti, StandardCharsets.UTF_8);
-            editor.setText(tekst);
-            openedFilePath = filePath;
+
+            model.loadDocument(filePath);
         }
     };
 
@@ -101,7 +202,12 @@ public class JNotepad extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            if(openedFilePath==null) {
+
+            SingleDocumentModel singleDocumentModel = model.getCurrentDocument();
+            if(Objects.equals(e.getActionCommand(), "exiting")) singleDocumentModel = model.getDocument(e.getID());
+
+
+            if(singleDocumentModel.getFilePath()==null) {
                 JFileChooser jfc = new JFileChooser();
                 jfc.setDialogTitle("Save document");
                 if(jfc.showSaveDialog(JNotepad.this)!=JFileChooser.APPROVE_OPTION) {
@@ -112,24 +218,11 @@ public class JNotepad extends JFrame {
                             JOptionPane.WARNING_MESSAGE);
                     return;
                 }
-                openedFilePath = jfc.getSelectedFile().toPath();
+                singleDocumentModel.setFilePath(jfc.getSelectedFile().toPath());
             }
-            byte[] podatci = editor.getText().getBytes(StandardCharsets.UTF_8);
-            try {
-                Files.write(openedFilePath, podatci);
-            } catch (IOException e1) {
-                JOptionPane.showMessageDialog(
-                        JNotepad.this,
-                        "Pogreška prilikom zapisivanja datoteke "+openedFilePath.toFile().getAbsolutePath()+".\nPaĹľnja: nije jasno u kojem je stanju datoteka na disku!",
-                        "Pogreška",
-                        JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            JOptionPane.showMessageDialog(
-                    JNotepad.this,
-                    "Datoteka je snimljena.",
-                    "Informacija",
-                    JOptionPane.INFORMATION_MESSAGE);
+
+            model.saveDocument(singleDocumentModel, singleDocumentModel.getFilePath());
+
         }
     };
 
@@ -140,34 +233,38 @@ public class JNotepad extends JFrame {
         @Override
         public void actionPerformed(ActionEvent e) {
 
-                JFileChooser jfc = new JFileChooser();
-                jfc.setDialogTitle("Save document as");
-                if(jfc.showSaveDialog(JNotepad.this)!=JFileChooser.APPROVE_OPTION) {
+
+            SingleDocumentModel singleDocumentModel = model.getCurrentDocument();
+            if(Objects.equals(e.getActionCommand(), "exiting")) singleDocumentModel = model.getDocument(e.getID());
+
+
+            if(singleDocumentModel.getFilePath() != null){
+                int n = JOptionPane.showConfirmDialog(
+                        JNotepad.this,
+                        "File već postoji, želite li ga ponovno stvoriti na drugoj lokaciji?",
+                        "Spremanje",
+                        JOptionPane.YES_NO_OPTION);
+                if(n == JOptionPane.NO_OPTION){
+                    return;
+                }
+            }
+
+            JFileChooser jfc = new JFileChooser();
+            jfc.setDialogTitle("Save document as");
+            if(jfc.showSaveDialog(JNotepad.this)!=JFileChooser.APPROVE_OPTION) {
                     JOptionPane.showMessageDialog(
                             JNotepad.this,
                             "Ništa nije snimljeno.",
                             "Upozorenje",
                             JOptionPane.WARNING_MESSAGE);
                     return;
-                }
-                openedFilePath = jfc.getSelectedFile().toPath();
-
-            byte[] podatci = editor.getText().getBytes(StandardCharsets.UTF_8);
-            try {
-                Files.write(openedFilePath, podatci);
-            } catch (IOException e1) {
-                JOptionPane.showMessageDialog(
-                        JNotepad.this,
-                        "Pogreška prilikom zapisivanja datoteke "+openedFilePath.toFile().getAbsolutePath()+".\nPaĹľnja: nije jasno u kojem je stanju datoteka na disku!",
-                        "Pogreška",
-                        JOptionPane.ERROR_MESSAGE);
-                return;
             }
-            JOptionPane.showMessageDialog(
-                    JNotepad.this,
-                    "Datoteka je snimljena.",
-                    "Informacija",
-                    JOptionPane.INFORMATION_MESSAGE);
+
+            var openedFilePath = jfc.getSelectedFile().toPath();
+            singleDocumentModel.setFilePath(openedFilePath);
+            model.saveDocument(singleDocumentModel, openedFilePath);
+            singleDocumentModel.setModified(false);
+            singleDocumentModel.setFilePath(openedFilePath);
         }
     };
 
@@ -207,7 +304,7 @@ public class JNotepad extends JFrame {
         @Override
         public void actionPerformed(ActionEvent e) {
             Document doc = editor.getDocument();
-            copyed = editor.getSelectedText();
+            //copyed = editor.getSelectedText();
             var carter = editor.getCaret();
             try {
                 doc.insertString(carter.getDot(), copyed, null);
@@ -345,6 +442,49 @@ public class JNotepad extends JFrame {
         exitAction.putValue(
                 Action.SHORT_DESCRIPTION,
                 "Exit application.");
+
+        copySelectedPartAction.putValue(
+                Action.NAME,
+                "Copy");
+        copySelectedPartAction.putValue(
+                Action.ACCELERATOR_KEY,
+                KeyStroke.getKeyStroke("control C"));
+        copySelectedPartAction.putValue(
+                Action.MNEMONIC_KEY,
+                KeyEvent.VK_C);
+        copySelectedPartAction.putValue(
+                Action.SHORT_DESCRIPTION,
+                "Copy selected part of text.");
+
+        pasteAction.putValue(
+                Action.NAME,
+                "Paste");
+        pasteAction.putValue(
+                Action.ACCELERATOR_KEY,
+                KeyStroke.getKeyStroke("control V"));
+        pasteAction.putValue(
+                Action.MNEMONIC_KEY,
+                KeyEvent.VK_V);
+        pasteAction.putValue(
+                Action.SHORT_DESCRIPTION,
+                "paste selected (copied) part of text.");
+
+        statisticInfo.putValue(
+                Action.NAME,
+                "Statistic info");
+        statisticInfo.putValue(
+                Action.ACCELERATOR_KEY,
+                KeyStroke.getKeyStroke("control I"));
+        statisticInfo.putValue(
+                Action.MNEMONIC_KEY,
+                KeyEvent.VK_I);
+        statisticInfo.putValue(
+                Action.SHORT_DESCRIPTION,
+                "Shows statistic info about document.");
+
+
+
+
     }
 
     private void createMenus() {
@@ -355,14 +495,21 @@ public class JNotepad extends JFrame {
 
         fileMenu.add(new JMenuItem(openDocumentAction));
         fileMenu.add(new JMenuItem(saveDocumentAction));
+        fileMenu.add(new JMenuItem(saveAsDocumentAction));
         fileMenu.addSeparator();
+
+        fileMenu.add(new JMenuItem(statisticInfo));
         fileMenu.add(new JMenuItem(exitAction));
+
 
         JMenu editMenu = new JMenu("Edit");
         menuBar.add(editMenu);
 
         editMenu.add(new JMenuItem(deleteSelectedPartAction));
         editMenu.add(new JMenuItem(toggleCaseAction));
+        editMenu.add(new JMenuItem(copySelectedPartAction));
+        editMenu.add(new JMenuItem(pasteAction));
+
 
         this.setJMenuBar(menuBar);
     }
@@ -374,10 +521,18 @@ public class JNotepad extends JFrame {
         toolBar.add(new JButton(openDocumentAction));
         toolBar.add(new JButton(saveDocumentAction));
         toolBar.addSeparator();
+
         toolBar.add(new JButton(deleteSelectedPartAction));
         toolBar.add(new JButton(toggleCaseAction));
+        toolBar.addSeparator();
 
-        this.getContentPane().add(toolBar, BorderLayout.PAGE_START);
+        toolBar.add(new JButton(copySelectedPartAction));
+        toolBar.add(new JButton(pasteAction));
+
+        toolBar.addSeparator();
+        toolBar.add(new JButton(statisticInfo));
+
+        this.getContentPane().add(toolBar, BorderLayout.PAGE_END);
     }
 
     /**
