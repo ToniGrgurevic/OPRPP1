@@ -274,6 +274,7 @@ public class JNotepad extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent e) {
+            JTextArea editor = model.getCurrentDocument().getTextComponent();
             Document doc = editor.getDocument();
             int len = Math.abs(editor.getCaret().getDot()-editor.getCaret().getMark());
             if(len==0) return;
@@ -292,6 +293,7 @@ public class JNotepad extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent e) {
+            JTextArea editor = model.getCurrentDocument().getTextComponent();
             Document doc = editor.getDocument();
             copyed = editor.getSelectedText();
         }
@@ -303,6 +305,7 @@ public class JNotepad extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent e) {
+            JTextArea editor = model.getCurrentDocument().getTextComponent();
             Document doc = editor.getDocument();
             //copyed = editor.getSelectedText();
             var carter = editor.getCaret();
@@ -321,6 +324,7 @@ public class JNotepad extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent e) {
+            JTextArea editor = model.getCurrentDocument().getTextComponent();
             Document doc = editor.getDocument();
             int len = Math.abs(editor.getCaret().getDot()-editor.getCaret().getMark());
             int offset = 0;
