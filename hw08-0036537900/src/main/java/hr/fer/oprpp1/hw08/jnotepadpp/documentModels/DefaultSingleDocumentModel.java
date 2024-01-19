@@ -22,6 +22,8 @@ public class DefaultSingleDocumentModel implements SingleDocumentModel {
 
 
 
+
+
     public DefaultSingleDocumentModel(Path path, String text) {
         this.path = path;
         textArea = new JTextArea(text);
@@ -82,4 +84,12 @@ public class DefaultSingleDocumentModel implements SingleDocumentModel {
     public void removeSingleDocumentListener(SingleDocumentListener l) {
         listeners.remove(l);
     }
+
+    @Override
+    public List<SingleDocumentListener> getLiseners() {
+        return listeners;
+
+    }
+
+
 }

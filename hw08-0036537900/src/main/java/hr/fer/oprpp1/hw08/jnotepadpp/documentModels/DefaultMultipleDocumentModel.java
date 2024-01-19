@@ -26,8 +26,9 @@ public class DefaultMultipleDocumentModel extends JTabbedPane implements Multipl
     private List<MultipleDocumentListener> listeners = new ArrayList<>();
 
 
+
     {
-        model.addChangeListener(new ChangeListener() {
+        addChangeListener(new ChangeListener() {
             @Override
             public void stateChanged(ChangeEvent e) {
                 int activeIndex = model.getSelectedIndex();
@@ -35,7 +36,7 @@ public class DefaultMultipleDocumentModel extends JTabbedPane implements Multipl
                     currentDocument = null;
                     return;
                 }
-                SingleDocumentModel previusDocument = currentDocument;
+                SingleDocumentModel previusDocument =currentDocument ;
                 currentDocument = documents.get(activeIndex);
                 listeners.forEach(l -> l.currentDocumentChanged(previusDocument, currentDocument));
                 String path = currentDocument.getFilePath() == null ? "(unnamed)" : currentDocument.getFilePath().toString();
@@ -44,10 +45,21 @@ public class DefaultMultipleDocumentModel extends JTabbedPane implements Multipl
             }
 
         });
-
-
     }
 
+    public void createSingleDocLisener(){
+
+        getCurrentDocument().addSingleDocumentListener(new SingleDocumentListener() {
+
+            public void documentModifyStatusUpdated(SingleDocumentModel docModel) {
+                setIconAt(getIndexOfDocument(docModel), docModel.isModified() ? JNotepad.modifiedIcon : JNotepad.unmodifiedIcon);
+            }
+            public void documentFilePathUpdated(SingleDocumentModel docModel) {
+                setTitleAt(getIndexOfDocument(docModel), docModel.getFilePath() == null ? "(unnamed)" : docModel.getFilePath().getFileName().toString());
+                setToolTipTextAt(getIndexOfDocument(docModel), docModel.getFilePath() == null ? "(unnamed)" : docModel.getFilePath().toString());
+            }
+        });
+    }
 
     @Override
     public JComponent getVisualComponent() {
@@ -61,13 +73,16 @@ public class DefaultMultipleDocumentModel extends JTabbedPane implements Multipl
 
         SingleDocumentModel newDocument = new DefaultSingleDocumentModel(null, "");
         documents.add(newDocument);
+        this.addTab("(unammed)",new JScrollPane(newDocument.getTextComponent()));
+
+        var previusDocument = currentDocument;
+
+        currentDocument = newDocument;
+
+        this.setSelectedIndex(this.getIndexOfDocument(currentDocument));
 
         listeners.forEach(l -> l.documentAdded(newDocument));
-        listeners.forEach(l -> l.currentDocumentChanged(currentDocument,newDocument));
-
-        this.addTab("(unammed)",new JScrollPane(newDocument.getTextComponent()));
-        currentDocument = newDocument;
-        this.setSelectedIndex(this.getIndexOfDocument(currentDocument));
+        listeners.forEach(l -> l.currentDocumentChanged(previusDocument,newDocument));
 
         return newDocument;
     }
@@ -113,11 +128,13 @@ public class DefaultMultipleDocumentModel extends JTabbedPane implements Multipl
              newDocument = new DefaultSingleDocumentModel(path, tekst);
 
         documents.add(newDocument);
+        this.addTab(path.getFileName().toString(), newDocument.getTextComponent());
+
         listeners.forEach(l -> l.documentAdded(newDocument));
         listeners.forEach(l -> l.currentDocumentChanged(currentDocument,newDocument));
+
         currentDocument = newDocument;
-        this.addTab(path.getFileName().toString(), newDocument.getTextComponent());
-        this.setSelectedIndex(documents.size()-1);
+        this.setSelectedIndex(this.getIndexOfDocument(currentDocument));
         return newDocument;
     }
 
@@ -140,24 +157,34 @@ public class DefaultMultipleDocumentModel extends JTabbedPane implements Multipl
                 "Informacija",
                 JOptionPane.INFORMATION_MESSAGE);
 
+        model.setFilePath(newPath);
+        model.setModified(false);
+
     }
 
     @Override
     public void closeDocument(SingleDocumentModel model) {
 
 
+
+        int index = this.getIndexOfDocument(model);
         documents.remove(model);
+
         listeners.forEach(l -> l.documentRemoved(model));
+        this.removeTabAt(index);
 
         if(documents.isEmpty()) {
             currentDocument = null;
+            //listeners.forEach(l -> l.documentRemoved(model));
+           // listeners.forEach(l -> l.currentDocumentChanged(null, null));
             return;
         }else {
+
             currentDocument = documents.get(0);
+            this.setSelectedIndex(0);
+            listeners.forEach(l -> l.documentRemoved(model));
             listeners.forEach(l -> l.currentDocumentChanged(model, currentDocument));
         }
-
-        this.removeTabAt(this.getIndexOfDocument(model));
 
     }
 

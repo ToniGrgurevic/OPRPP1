@@ -4,6 +4,7 @@ import hr.fer.oprpp1.hw08.jnotepadpp.liseners.SingleDocumentListener;
 
 import javax.swing.*;
 import java.nio.file.Path;
+import java.util.List;
 
 public interface SingleDocumentModel {
     JTextArea getTextComponent();
@@ -13,5 +14,7 @@ public interface SingleDocumentModel {
     void setModified(boolean modified);
     void addSingleDocumentListener(SingleDocumentListener l);
     void removeSingleDocumentListener(SingleDocumentListener l);
+
+    List<SingleDocumentListener> getLiseners();
 }
 

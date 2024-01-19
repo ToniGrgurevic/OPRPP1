@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ResourceBundleManager">
+    <file url="file://$PROJECT_DIR$/src/main/resources/hr/fer/oprpp1/hw08/jnotepadpp/local/prijevodi_en.properties" />
+    <file url="file://$PROJECT_DIR$/src/main/resources/hr/fer/oprpp1/hw08/jnotepadpp/local/prijevodi_hr.properties" />
+    <file url="file://$PROJECT_DIR$/src/main/resources/hr/fer/oprpp1/hw08/jnotepadpp/local/prijevodi_itl.properties" />
+    <custom-resource-bundle>
+      <file value="file://$PROJECT_DIR$/src/main/resources/hr/fer/oprpp1/hw08/jnotepadpp/local/prijevodi_en.properties" />
+      <file value="file://$PROJECT_DIR$/src/main/resources/hr/fer/oprpp1/hw08/jnotepadpp/local/prijevodi_hr.properties" />
+      <file value="file://$PROJECT_DIR$/src/main/resources/hr/fer/oprpp1/hw08/jnotepadpp/local/prijevodi_itl.properties" />
+      <base-name>prijevodi</base-name>
+    </custom-resource-bundle>
+  </component>
+</project>
